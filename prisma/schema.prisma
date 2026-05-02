@@ -1,0 +1,304 @@
+generator client {
+  provider     = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model AuthCode {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  destino    String   @db.VarChar(255)
+  codigo     String   @db.VarChar(6)
+  expiracion DateTime @db.Timestamp(0)
+  usado      Boolean? @default(false)
+  creado_en  DateTime @default(now()) @db.Timestamp(0)
+}
+
+model Canje {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  id_usuario    Int        @db.UnsignedInt
+  id_recompensa Int        @db.UnsignedInt
+  usado         Boolean?   @default(false)
+  creado_en     DateTime   @default(now()) @db.Timestamp(0)
+  Recompensa    Recompensa @relation(fields: [id_recompensa], references: [id], onUpdate: Restrict, map: "fk_canje_recompensa")
+  Usuario       Usuario    @relation(fields: [id_usuario], references: [id], onUpdate: Restrict, map: "fk_canje_usuario")
+
+  @@index([id_recompensa], map: "fk_canje_recompensa")
+  @@index([id_usuario], map: "fk_canje_usuario")
+}
+
+model Categoria {
+  id             Int         @id @default(autoincrement()) @db.UnsignedInt
+  nombre         String      @db.VarChar(150)
+  id_restaurante Int         @db.UnsignedInt
+  activo         Boolean?    @default(true)
+  Restaurante    Restaurante @relation(fields: [id_restaurante], references: [id], onUpdate: Restrict, map: "fk_categoria_restaurante")
+  Producto       Producto[]
+
+  @@unique([nombre, id_restaurante], map: "nombre")
+  @@index([id_restaurante], map: "fk_categoria_restaurante")
+}
+
+model ConfiguracionSistema {
+  id            Int      @id @default(autoincrement()) @db.UnsignedInt
+  clave         String   @unique(map: "clave") @db.VarChar(150)
+  valor_varchar String?  @db.VarChar(255)
+  valor_decimal Decimal? @db.Decimal(10, 2)
+  valor_integer Int?
+}
+
+model Dispositivo {
+  id         Int                     @id @default(autoincrement()) @db.UnsignedInt
+  id_usuario Int                     @db.UnsignedInt
+  token      String                  @db.VarChar(255)
+  plataforma Dispositivo_plataforma? @default(android)
+  activo     Boolean?                @default(true)
+  creado_en  DateTime                @default(now()) @db.Timestamp(0)
+  Usuario    Usuario                 @relation(fields: [id_usuario], references: [id], onUpdate: Restrict, map: "fk_dispositivo_usuario")
+
+  @@index([id_usuario], map: "fk_dispositivo_usuario")
+}
+
+model Mesa {
+  id             Int           @id @default(autoincrement()) @db.UnsignedInt
+  numero         Int
+  codigo         String        @unique(map: "codigo") @db.VarChar(6)
+  id_restaurante Int           @db.UnsignedInt
+  activo         Boolean?      @default(true)
+  creado_en      DateTime      @default(now()) @db.Timestamp(0)
+  Restaurante    Restaurante   @relation(fields: [id_restaurante], references: [id], onUpdate: Restrict, map: "fk_mesa_restaurante")
+  MesaSession    MesaSession[]
+  Pedido         Pedido[]
+
+  @@unique([id_restaurante, numero], map: "id_restaurante")
+}
+
+model MesaSession {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_mesa    Int      @db.UnsignedInt
+  token      String   @unique(map: "token") @db.VarChar(100)
+  expiracion DateTime @db.Timestamp(0)
+  activo     Boolean? @default(true)
+  creado_en  DateTime @default(now()) @db.Timestamp(0)
+  Mesa       Mesa     @relation(fields: [id_mesa], references: [id], onUpdate: Restrict, map: "fk_mesasession_mesa")
+  Pedido     Pedido[]
+
+  @@index([id_mesa], map: "fk_mesasession_mesa")
+}
+
+model MovimientoPuntos {
+  id         Int                   @id @default(autoincrement()) @db.UnsignedInt
+  id_usuario Int                   @db.UnsignedInt
+  id_pedido  Int?                  @db.UnsignedInt
+  puntos     Int
+  tipo       MovimientoPuntos_tipo
+  creado_en  DateTime              @default(now()) @db.Timestamp(0)
+  Pedido     Pedido?               @relation(fields: [id_pedido], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_movimiento_pedido")
+  Usuario    Usuario               @relation(fields: [id_usuario], references: [id], onUpdate: Restrict, map: "fk_movimiento_usuario")
+
+  @@index([id_pedido], map: "fk_movimiento_pedido")
+  @@index([id_usuario], map: "fk_movimiento_usuario")
+}
+
+model Notificacion {
+  id                  Int                   @id @default(autoincrement()) @db.UnsignedInt
+  titulo              String                @db.VarChar(150)
+  mensaje             String                @db.Text
+  tipo                Notificacion_tipo
+  data                String?               @db.LongText
+  creado_en           DateTime              @default(now()) @db.Timestamp(0)
+  UsuarioNotificacion UsuarioNotificacion[]
+}
+
+model Pedido {
+  id               Int                @id @default(autoincrement()) @db.UnsignedInt
+  id_mesa          Int                @db.UnsignedInt
+  id_mesa_session  Int                @db.UnsignedInt
+  id_usuario       Int?               @db.UnsignedInt
+  estado           Pedido_estado?     @default(pendiente)
+  total            Decimal            @db.Decimal(10, 2)
+  creado_en        DateTime           @default(now()) @db.Timestamp(0)
+  MovimientoPuntos MovimientoPuntos[]
+  Mesa             Mesa               @relation(fields: [id_mesa], references: [id], onUpdate: Restrict, map: "fk_pedido_mesa")
+  MesaSession      MesaSession        @relation(fields: [id_mesa_session], references: [id], onUpdate: Restrict, map: "fk_pedido_mesasession")
+  Usuario          Usuario?           @relation(fields: [id_usuario], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_pedido_usuario")
+  PedidoDetalle    PedidoDetalle[]
+
+  @@index([id_mesa], map: "fk_pedido_mesa")
+  @@index([id_mesa_session], map: "fk_pedido_mesasession")
+  @@index([id_usuario], map: "fk_pedido_usuario")
+}
+
+model PedidoDetalle {
+  id              Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_pedido       Int      @db.UnsignedInt
+  id_producto     Int      @db.UnsignedInt
+  cantidad        Int?     @default(1)
+  precio_unitario Decimal  @db.Decimal(10, 2)
+  Pedido          Pedido   @relation(fields: [id_pedido], references: [id], onUpdate: Restrict, map: "fk_pedidodetalle_pedido")
+  Producto        Producto @relation(fields: [id_producto], references: [id], onUpdate: Restrict, map: "fk_pedidodetalle_producto")
+
+  @@index([id_producto], map: "fk_pedidodetalle_producto")
+  @@index([id_pedido, id_producto], map: "idx_pedido_producto")
+}
+
+model Permiso {
+  id         Int          @id @default(autoincrement()) @db.UnsignedInt
+  nombre     String       @unique(map: "nombre") @db.VarChar(150)
+  RolPermiso RolPermiso[]
+}
+
+model Producto {
+  id             Int             @id @default(autoincrement()) @db.UnsignedInt
+  nombre         String          @db.VarChar(150)
+  descripcion    String?         @db.Text
+  url_img        String?         @db.VarChar(255)
+  precio         Decimal         @db.Decimal(10, 2)
+  id_restaurante Int             @db.UnsignedInt
+  id_categoria   Int             @db.UnsignedInt
+  activo         Boolean?        @default(true)
+  creado_en      DateTime        @default(now()) @db.Timestamp(0)
+  PedidoDetalle  PedidoDetalle[]
+  Categoria      Categoria       @relation(fields: [id_categoria], references: [id], onUpdate: Restrict, map: "fk_producto_categoria")
+  Restaurante    Restaurante     @relation(fields: [id_restaurante], references: [id], onUpdate: Restrict, map: "fk_producto_restaurante")
+  Recompensa     Recompensa[]
+
+  @@index([id_categoria], map: "fk_producto_categoria")
+  @@index([id_restaurante], map: "fk_producto_restaurante")
+}
+
+model Recompensa {
+  id                Int         @id @default(autoincrement()) @db.UnsignedInt
+  nombre            String      @db.VarChar(150)
+  descripcion       String?     @db.Text
+  url_img           String?     @db.VarChar(255)
+  id_producto       Int         @db.UnsignedInt
+  id_restaurante    Int         @db.UnsignedInt
+  puntos_requiridos Int
+  activo            Boolean?    @default(true)
+  Canje             Canje[]
+  Producto          Producto    @relation(fields: [id_producto], references: [id], onUpdate: Restrict, map: "fk_recompensa_producto")
+  Restaurante       Restaurante @relation(fields: [id_restaurante], references: [id], onUpdate: Restrict, map: "fk_recompensa_restaurante")
+
+  @@index([id_producto], map: "fk_recompensa_producto")
+  @@index([id_restaurante], map: "fk_recompensa_restaurante")
+}
+
+model Restaurante {
+  id         Int          @id @default(autoincrement()) @db.UnsignedInt
+  nombre     String       @db.VarChar(255)
+  direccion  String       @db.VarChar(255)
+  activo     Boolean?     @default(true)
+  creado_en  DateTime     @default(now()) @db.Timestamp(0)
+  Categoria  Categoria[]
+  Mesa       Mesa[]
+  Producto   Producto[]
+  Recompensa Recompensa[]
+}
+
+model Rol {
+  id              Int               @id @default(autoincrement()) @db.UnsignedInt
+  nombre          String            @unique(map: "nombre") @db.VarChar(150)
+  RolPermiso      RolPermiso[]
+  UsuarioStaffRol UsuarioStaffRol[]
+}
+
+model RolPermiso {
+  id_rol     Int     @db.UnsignedInt
+  id_permiso Int     @db.UnsignedInt
+  Permiso    Permiso @relation(fields: [id_permiso], references: [id], onUpdate: Restrict, map: "fk_rolpermiso_permiso")
+  Rol        Rol     @relation(fields: [id_rol], references: [id], onUpdate: Restrict, map: "fk_rolpermiso_rol")
+
+  @@id([id_rol, id_permiso])
+  @@index([id_permiso], map: "fk_rolpermiso_permiso")
+}
+
+model UserSession {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  id_usuario Int      @db.UnsignedInt
+  token      String   @unique(map: "token") @db.VarChar(255)
+  expiracion DateTime @db.Timestamp(0)
+  creado_en  DateTime @default(now()) @db.Timestamp(0)
+  Usuario    Usuario  @relation(fields: [id_usuario], references: [id], onUpdate: Restrict, map: "fk_usersession_usuario")
+
+  @@index([id_usuario], map: "fk_usersession_usuario")
+}
+
+model Usuario {
+  id                  Int                   @id @default(autoincrement()) @db.UnsignedInt
+  nombre              String                @db.VarChar(100)
+  apellido            String                @db.VarChar(100)
+  email               String                @unique(map: "email") @db.VarChar(255)
+  puntos              Int?                  @default(0)
+  activo              Boolean?              @default(true)
+  creado_en           DateTime              @default(now()) @db.Timestamp(0)
+  Canje               Canje[]
+  Dispositivo         Dispositivo[]
+  MovimientoPuntos    MovimientoPuntos[]
+  Pedido              Pedido[]
+  UserSession         UserSession[]
+  UsuarioNotificacion UsuarioNotificacion[]
+}
+
+model UsuarioNotificacion {
+  id              Int          @id @default(autoincrement()) @db.UnsignedInt
+  id_usuario      Int          @db.UnsignedInt
+  id_notificacion Int          @db.UnsignedInt
+  leida           Boolean?     @default(false)
+  enviada         Boolean?     @default(false)
+  leida_en        DateTime?    @db.Timestamp(0)
+  Notificacion    Notificacion @relation(fields: [id_notificacion], references: [id], onUpdate: Restrict, map: "fk_usuarionotificacion_notificacion")
+  Usuario         Usuario      @relation(fields: [id_usuario], references: [id], onUpdate: Restrict, map: "fk_usuarionotificacion_usuario")
+
+  @@index([id_notificacion], map: "fk_usuarionotificacion_notificacion")
+  @@index([id_usuario], map: "fk_usuarionotificacion_usuario")
+}
+
+model UsuarioStaff {
+  id              Int               @id @default(autoincrement()) @db.UnsignedInt
+  nombre          String            @db.VarChar(100)
+  apellido        String            @db.VarChar(100)
+  password        String            @db.VarChar(255)
+  activo          Boolean?          @default(true)
+  creado_en       DateTime          @default(now()) @db.Timestamp(0)
+  email           String            @unique(map: "email") @db.VarChar(255)
+  UsuarioStaffRol UsuarioStaffRol[]
+}
+
+model UsuarioStaffRol {
+  id_usuario_staff Int          @db.UnsignedInt
+  id_rol           Int          @db.UnsignedInt
+  Rol              Rol          @relation(fields: [id_rol], references: [id], onUpdate: Restrict, map: "fk_staffrol_rol")
+  UsuarioStaff     UsuarioStaff @relation(fields: [id_usuario_staff], references: [id], onUpdate: Restrict, map: "fk_staffrol_usuario")
+
+  @@id([id_usuario_staff, id_rol])
+  @@index([id_rol], map: "fk_staffrol_rol")
+}
+
+enum Dispositivo_plataforma {
+  android
+  ios
+}
+
+enum Notificacion_tipo {
+  pedido
+  promo
+  puntos
+  sistema
+}
+
+enum MovimientoPuntos_tipo {
+  ganado
+  canjeado
+  regalado
+}
+
+enum Pedido_estado {
+  pendiente
+  preparado
+  listo
+  entregado
+  cancelado
+  confirmado
+}
