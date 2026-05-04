@@ -1,4 +1,5 @@
-import { IsString, IsEmail, MinLength, MaxLength, Matches, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsEmail, MinLength, MaxLength, Matches, IsArray, IsInt, ArrayNotEmpty } from 'class-validator';
 
 export class CreateStaffDto {
   @IsString()
@@ -22,6 +23,12 @@ export class CreateStaffDto {
   })
   password!: string;
 
+  @IsInt()
+  restaurante!: number;
+
   @IsArray()
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  @Type(() => Number)
   roles!: number[];
 }

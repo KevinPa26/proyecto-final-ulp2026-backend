@@ -1,5 +1,5 @@
 generator client {
-  provider     = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -186,15 +186,16 @@ model Recompensa {
 }
 
 model Restaurante {
-  id         Int          @id @default(autoincrement()) @db.UnsignedInt
-  nombre     String       @db.VarChar(255)
-  direccion  String       @db.VarChar(255)
-  activo     Boolean?     @default(true)
-  creado_en  DateTime     @default(now()) @db.Timestamp(0)
-  Categoria  Categoria[]
-  Mesa       Mesa[]
-  Producto   Producto[]
-  Recompensa Recompensa[]
+  id           Int            @id @default(autoincrement()) @db.UnsignedInt
+  nombre       String         @db.VarChar(255)
+  direccion    String         @db.VarChar(255)
+  activo       Boolean?       @default(true)
+  creado_en    DateTime       @default(now()) @db.Timestamp(0)
+  Categoria    Categoria[]
+  Mesa         Mesa[]
+  Producto     Producto[]
+  Recompensa   Recompensa[]
+  UsuarioStaff UsuarioStaff[]
 }
 
 model Rol {
@@ -263,7 +264,11 @@ model UsuarioStaff {
   activo          Boolean?          @default(true)
   creado_en       DateTime          @default(now()) @db.Timestamp(0)
   email           String            @unique(map: "email") @db.VarChar(255)
+  id_restaurante  Int               @db.UnsignedInt
+  Restaurante     Restaurante       @relation(fields: [id_restaurante], references: [id], map: "fk_usuario_staff_restaurante")
   UsuarioStaffRol UsuarioStaffRol[]
+
+  @@index([id_restaurante], map: "idx_usuario_staff_restaurante")
 }
 
 model UsuarioStaffRol {

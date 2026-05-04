@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsOptional, IsInt, Min, IsBoolean } from 'class-validator';
 
-export class PaginationStaffDto {
+export class PaginationPermisoDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -16,12 +16,4 @@ export class PaginationStaffDto {
 
   @IsOptional()
   search?: string;
-
-  @IsInt()
-  restaurante!: number;
-
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  estado?: boolean;
 }

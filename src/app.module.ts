@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import config from './core/config';
 import { validationSchema } from './core/config/validation.schema';
 import { PrismaModule } from './core/prisma/prisma.module';
-import { AuthModule } from './modules/auth/auth.module';
+import { PermisosModule } from './modules/permisos/permisos.module';
 
 
 @Module({
@@ -16,7 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
       validationSchema,
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`
     }),
-    PrismaModule, StaffModule, AuthModule
+    PrismaModule, StaffModule, AuthModule, PermisosModule
   ],
   controllers: [],
   providers: [],

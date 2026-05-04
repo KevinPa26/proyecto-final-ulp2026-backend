@@ -33,6 +33,14 @@ export class StaffService {
       throw new ForbiddenException('No permitido');
     }
 
+    const restaurante = await this.prisma.restaurante.findUnique({
+      where: { id: dto.restaurante }
+    })
+
+    if(!restaurante) {
+      throw new BadRequestException('Restaurante no encontrado.');
+    }
+
     const hash = await bcrypt.hash(dto.password, 10);
 
     const staff = await this.prisma.$transaction(async (tx) => {
@@ -41,14 +49,11 @@ export class StaffService {
           nombre,
           apellido: dto.apellido,
           password: hash,
-          email: dto.email
+          email: dto.email,
+          id_restaurante: dto.restaurante
         },
-        select: {
-          id: true,
-          nombre: true,
-          apellido: true,
-          email: true,
-          activo: true,
+        omit: {
+          password: true
         }
       });
 
@@ -65,11 +70,20 @@ export class StaffService {
     return staff
   }
 
-  async findAll({ page = 1, limit = 10, search, estado = true }: PaginationStaffDto) {
+  async findAll({ page = 1, limit = 10, search, estado = true, restaurante }: PaginationStaffDto) {
+    const existe = await this.prisma.restaurante.findUnique({
+      where: { id: restaurante }
+    })
+
+    if(!existe) {
+      throw new BadRequestException('Restaurante no encontrado.');
+    }
+
     const skip = (page - 1) * limit;
-    
+
     const where = {
       activo: estado,
+      id_restaurante: restaurante,
       ...(search && {
         OR: [
           {
@@ -83,7 +97,6 @@ export class StaffService {
             }
           }
         ]
-        ,
       })
     }
 
@@ -93,17 +106,14 @@ export class StaffService {
         take: limit,
         where,
         select: {
+          id: true,
           nombre: true,
           apellido: true,
           activo: true,
           email: true,
-          UsuarioStaffRol: {
+          Restaurante: {
             select: {
-              Rol: {
-                select: {
-                  nombre: true
-                }
-              }
+              nombre: true
             }
           }
         }
@@ -125,10 +135,12 @@ export class StaffService {
     const staff = await this.prisma.usuarioStaff.findUnique({
       where: { id },
       select: {
+        id: true,
         nombre: true,
         apellido: true,
         email: true,
         activo: true,
+        Restaurante: true,
         UsuarioStaffRol: {
           select: {
             Rol: true
@@ -149,11 +161,13 @@ export class StaffService {
     const staff = await this.prisma.usuarioStaff.findUnique({
       where: { email },
       select: {
+        id: true,
         nombre: true,
         apellido: true,
         email: true,
         password: true,
         activo: true,
+        Restaurante: true,
         UsuarioStaffRol: {
           select: {
             Rol: true
@@ -199,6 +213,8 @@ export class StaffService {
     let data: any = {
       ...dto
     }
+
+    //transformar a transaction agregar el update de roles y restaurante
 
     return this.prisma.usuarioStaff.update({
       where: { id },
@@ -286,6 +302,7 @@ export class StaffService {
         apellido: true,
         email: true,
         activo: true,
+        Restaurante: true,
         UsuarioStaffRol: {
           select: {
             Rol: true
